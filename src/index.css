@@ -1,0 +1,167 @@
+:root {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #111827;
+}
+
+/* ─── Layout ──────────────────────────────────────────────────────────────── */
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* ─── Sidebar ─────────────────────────────────────────────────────────────── */
+
+.sidebar {
+  width: 240px;
+  background: #111827;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+  z-index: 200;
+}
+
+.sidebar-close-btn {
+  display: none;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+/* ─── Main content ────────────────────────────────────────────────────────── */
+
+.main-content {
+  flex: 1;
+  padding: 28px 32px;
+  overflow: auto;
+  min-width: 0;
+}
+
+/* ─── Page header ─────────────────────────────────────────────────────────── */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  color: #374151;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+/* ─── PDV grid ────────────────────────────────────────────────────────────── */
+
+.pdv-grid {
+  display: grid;
+  grid-template-columns: 1fr 560px;
+  gap: 20px;
+  min-height: calc(100vh - 180px);
+}
+
+/* ─── Dashboard cards ─────────────────────────────────────────────────────── */
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+/* ─── Responsive: Tablet (768px – 1024px) ─────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .pdv-grid {
+    grid-template-columns: 1fr 360px;
+  }
+
+  .dashboard-cards {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+/* ─── Responsive: Mobile (< 768px) ───────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  /* Sidebar hidden off-screen on mobile */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-close-btn {
+    display: flex;
+  }
+
+  /* Backdrop overlay */
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 199;
+  }
+
+  /* Show hamburger button */
+  .hamburger-btn {
+    display: flex;
+  }
+
+  /* Main content full width with smaller padding */
+  .main-content {
+    padding: 16px;
+  }
+
+  /* PDV: stack cart below product list */
+  .pdv-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Dashboard cards smaller min */
+  .dashboard-cards {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  /* Tables: smaller font on mobile */
+  table {
+    font-size: 13px;
+  }
+}
