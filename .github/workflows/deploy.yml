@@ -1,11 +1,13 @@
-name: CI/CD Frontend
+name: CI Frontend
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,9 +26,3 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
-
-      - name: Deploy no Vercel
-        run: npx vercel --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
