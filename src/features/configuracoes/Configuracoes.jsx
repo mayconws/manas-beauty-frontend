@@ -1,27 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "../../shared/utils/api";
 import Select from "../../shared/components/Select";
 import Btn from "../../shared/components/Btn";
 import Input from "../../shared/components/Input";
 
-const STORAGE_KEY = "manas_pix_config";
-
 const defaultConfig = { tipoChave: "CPF", chave: "", nomeRecebedor: "", cidade: "" };
 
 export default function Configuracoes({ toast }) {
-  const [config, setConfig] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultConfig;
-    } catch {
-      return defaultConfig;
-    }
-  });
+  const [config, setConfig] = useState(defaultConfig);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api("/configuracoes/pix")
+      .then((data) => setConfig({ ...defaultConfig, ...data }))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const set = (field) => (e) => setConfig((prev) => ({ ...prev, [field]: e.target.value }));
 
-  const salvar = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    toast("Configurações salvas!", "success");
+  const salvar = async () => {
+    try {
+      await api("/configuracoes/pix", { method: "PUT", body: JSON.stringify(config) });
+      toast("Configurações salvas!", "success");
+    } catch {
+      toast("Erro ao salvar configurações.", "error");
+    }
   };
+
+  if (loading) return null;
 
   return (
     <div style={{ maxWidth: 520 }}>
@@ -46,16 +53,16 @@ export default function Configuracoes({ toast }) {
         />
 
         <Input
-          label="Nome do recebedor (máx. 25 caracteres)"
+          label="Nome do recebedor (máx. 100 caracteres)"
           value={config.nomeRecebedor}
-          onChange={(e) => setConfig((prev) => ({ ...prev, nomeRecebedor: e.target.value.substring(0, 25) }))}
+          onChange={(e) => setConfig((prev) => ({ ...prev, nomeRecebedor: e.target.value.substring(0, 100) }))}
           placeholder="Ex: Manas Beauty"
         />
 
         <Input
-          label="Cidade (máx. 15 caracteres)"
+          label="Cidade (máx. 50 caracteres)"
           value={config.cidade}
-          onChange={(e) => setConfig((prev) => ({ ...prev, cidade: e.target.value.substring(0, 15) }))}
+          onChange={(e) => setConfig((prev) => ({ ...prev, cidade: e.target.value.substring(0, 50) }))}
           placeholder="Ex: São Paulo"
         />
 

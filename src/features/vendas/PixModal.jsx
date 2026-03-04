@@ -2,24 +2,23 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import QRCode from "qrcode";
 import { gerarPixPayload } from "../../shared/utils/pixPayload";
-import { currency } from "../../shared/utils/api";
+import { api, currency } from "../../shared/utils/api";
 import Btn from "../../shared/components/Btn";
 import { Copy, Check, QrCode } from "lucide-react";
 
-const STORAGE_KEY = "manas_pix_config";
-
 export default function PixModal({ total, onClose }) {
   const navigate = useNavigate();
+  const [config, setConfig] = useState(null);
   const [qrUrl, setQrUrl] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [loadingConfig, setLoadingConfig] = useState(true);
 
-  const config = (() => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
-    } catch {
-      return null;
-    }
-  })();
+  useEffect(() => {
+    api("/configuracoes/pix")
+      .then((data) => setConfig(data))
+      .catch(() => setConfig(null))
+      .finally(() => setLoadingConfig(false));
+  }, []);
 
   const isConfigured = config && config.chave && config.nomeRecebedor && config.cidade;
 
@@ -43,6 +42,8 @@ export default function PixModal({ total, onClose }) {
     });
   };
 
+  if (loadingConfig) return null;
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.5)", backdropFilter: "blur(4px)" }}>
       <div style={{ background: "#fff", borderRadius: 20, width: "90%", maxWidth: 400, padding: 32, boxShadow: "0 25px 60px rgba(0,0,0,.25)", textAlign: "center" }}>
@@ -57,9 +58,7 @@ export default function PixModal({ total, onClose }) {
               Configure sua chave PIX antes de usar esta funcionalidade.
             </p>
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <Btn onClick={onClose} style={{ flex: 1 }}>
-                Fechar
-              </Btn>
+              <Btn onClick={onClose} style={{ flex: 1 }}>Fechar</Btn>
               <Btn variant="success" onClick={() => { onClose(); navigate("/configuracoes"); }} style={{ flex: 1 }}>
                 Ir para Configurações
               </Btn>

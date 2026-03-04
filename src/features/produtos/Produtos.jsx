@@ -255,6 +255,27 @@ export default function Produtos({ toast }) {
             </Select>
             <PrecoInput label="Preço Custo (R$)" value={form.precoCusto} field="precoCusto" setForm={setForm} />
             <PrecoInput label="Preço Venda (R$)" value={form.precoVenda} field="precoVenda" setForm={setForm} />
+            {(() => {
+              const custo = parseMask(form.precoCusto);
+              const venda = parseMask(form.precoVenda);
+              const lucro = venda - custo;
+              const margem = venda > 0 ? (lucro / venda) * 100 : 0;
+              const positivo = lucro >= 0;
+              const cor = positivo ? "#059669" : "#dc2626";
+              const bg = positivo ? "#ecfdf5" : "#fef2f2";
+              return (custo > 0 || venda > 0) ? (
+                <div style={{ gridColumn: "1 / -1", background: bg, borderRadius: 10, padding: "10px 16px", display: "flex", gap: 32, marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 2 }}>Lucro</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: cor }}>{currency(lucro)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 2 }}>Margem</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: cor }}>{margem.toFixed(1)}%</div>
+                  </div>
+                </div>
+              ) : null;
+            })()}
             <Input label="Qtd Estoque" type="number" value={form.quantidadeEstoque} onChange={(e) => setForm({ ...form, quantidadeEstoque: e.target.value })} />
             <Input label="Estoque Mínimo" type="number" value={form.estoqueMinimo} onChange={(e) => setForm({ ...form, estoqueMinimo: e.target.value })} />
             <div style={{ gridColumn: "1 / -1" }}>
