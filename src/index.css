@@ -12,6 +12,29 @@
   box-sizing: border-box;
 }
 
+/* ─── Loading / Spinner ───────────────────────────────────────────────────── */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: #eceef1;
+  background-image: linear-gradient(90deg, #eceef1 0px, #f5f6f7 200px, #eceef1 400px);
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.2s infinite linear;
+  border-radius: 8px;
+}
+
 body {
   margin: 0;
   min-width: 320px;

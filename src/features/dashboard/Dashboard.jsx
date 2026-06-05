@@ -1,15 +1,27 @@
 import { useState, useEffect } from "react";
 import { Package, ShoppingCart, DollarSign, TrendingUp, Archive, AlertTriangle } from "lucide-react";
 import { api, currency } from "../../shared/utils/api";
+import Loading from "../../shared/components/Loading";
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(false);
 
   useEffect(() => {
-    api("/vendas/dashboard").then(setData).catch(() => {});
+    api("/vendas/dashboard")
+      .then(setData)
+      .catch(() => setErro(true))
+      .finally(() => setLoading(false));
   }, []);
 
-  if (!data) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  if (loading) return <Loading text="Carregando dashboard..." />;
+  if (erro || !data)
+    return (
+      <div style={{ padding: 40, textAlign: "center", color: "#dc2626" }}>
+        Não foi possível carregar o dashboard. Tente recarregar a página.
+      </div>
+    );
 
   const cards = [
     { label: "Produtos Ativos", value: data.totalProdutos || 0, icon: Package, color: "#2563eb", bg: "#eff6ff" },

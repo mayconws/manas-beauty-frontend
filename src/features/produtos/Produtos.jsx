@@ -5,6 +5,7 @@ import Modal from "../../shared/components/Modal";
 import Btn from "../../shared/components/Btn";
 import Input from "../../shared/components/Input";
 import Select from "../../shared/components/Select";
+import Loading from "../../shared/components/Loading";
 
 // ─── Currency mask helpers ─────────────────────────────────────────────────
 const centsToBRL = (cents) =>
@@ -76,10 +77,15 @@ export default function Produtos({ toast }) {
   const [modal, setModal] = useState(null);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState(emptyForm);
+  const [loading, setLoading] = useState(true);
   const fileInputRef = useRef(null);
 
   const load = useCallback(() => {
-    api("/produtos").then(setProdutos).catch(() => {});
+    setLoading(true);
+    api("/produtos")
+      .then(setProdutos)
+      .catch(() => {})
+      .finally(() => setLoading(false));
     api("/categorias/ativas").then(setCategorias).catch(() => {});
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -164,7 +170,10 @@ export default function Produtos({ toast }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((p) => (
+            {loading && (
+              <tr><td colSpan={9} style={{ padding: 0 }}><Loading text="Carregando produtos..." /></td></tr>
+            )}
+            {!loading && filtered.map((p) => (
               <tr key={p.id} style={{ borderTop: "1px solid #f3f4f6" }}>
                 <td style={{ padding: "8px 8px 8px 14px", width: 44 }}>
                   {p.imagemUrl ? (
@@ -201,7 +210,7 @@ export default function Produtos({ toast }) {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Nenhum produto encontrado</td></tr>
             )}
           </tbody>
