@@ -3,14 +3,23 @@ import { ChevronRight, Trash2, Printer } from "lucide-react";
 import { api, currency } from "../../shared/utils/api";
 import Modal from "../../shared/components/Modal";
 import Btn from "../../shared/components/Btn";
+import Loading from "../../shared/components/Loading";
+import Pagination from "../../shared/components/Pagination";
+import { usePagination } from "../../shared/utils/usePagination";
 import { printRecibo } from "../../shared/utils/printRecibo";
 
 export default function Vendas({ toast }) {
   const [vendas, setVendas] = useState([]);
   const [detalhe, setDetalhe] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const load = useCallback(() => api("/vendas").then(setVendas).catch(() => {}), []);
+  const load = useCallback(() => {
+    setLoading(true);
+    api("/vendas").then(setVendas).catch(() => {}).finally(() => setLoading(false));
+  }, []);
   useEffect(() => { load(); }, [load]);
+
+  const { pageItems, page, setPage, totalPages, total } = usePagination(vendas, 10);
 
   const verDetalhe = async (id) => {
     const v = await api(`/vendas/${id}`);
@@ -41,7 +50,10 @@ export default function Vendas({ toast }) {
             </tr>
           </thead>
           <tbody>
-            {vendas.map((v) => (
+            {loading && (
+              <tr><td colSpan={7} style={{ padding: 0 }}><Loading text="Carregando vendas..." /></td></tr>
+            )}
+            {!loading && pageItems.map((v) => (
               <tr key={v.id} style={{ borderTop: "1px solid #f3f4f6" }}>
                 <td style={{ padding: "12px 14px", fontSize: 14, fontWeight: 600, color: "#2563eb" }}>{v.numeroVenda}</td>
                 <td style={{ padding: "12px 14px", fontSize: 14, color: "#374151" }}>{v.nomeCliente || "—"}</td>
@@ -64,11 +76,12 @@ export default function Vendas({ toast }) {
                 </td>
               </tr>
             ))}
-            {vendas.length === 0 && (
+            {!loading && vendas.length === 0 && (
               <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Nenhuma venda registrada</td></tr>
             )}
           </tbody>
         </table>
+        {!loading && <Pagination page={page} totalPages={totalPages} total={total} onPage={setPage} unit="vendas" />}
       </div>
 
       {detalhe && (

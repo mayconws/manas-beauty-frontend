@@ -70,6 +70,8 @@ const emptyForm = {
   categoriaId: "", imagemUrl: "",
 };
 
+const PAGE_SIZE = 20;
+
 // ─── Component ────────────────────────────────────────────────────────────
 export default function Produtos({ toast }) {
   const [produtos, setProdutos] = useState([]);
@@ -78,22 +80,37 @@ export default function Produtos({ toast }) {
   const [search, setSearch] = useState("");
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const fileInputRef = useRef(null);
 
   const load = useCallback(() => {
     setLoading(true);
-    api("/produtos")
-      .then(setProdutos)
+    const params = new URLSearchParams({ page, size: PAGE_SIZE });
+    if (search.trim()) params.set("nome", search.trim());
+    api(`/produtos?${params}`)
+      .then((data) => {
+        setProdutos(data.content);
+        setTotalPages(data.totalPages);
+        setTotalElements(data.totalElements);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
+  }, [page, search]);
+
+  // Recarrega ao mudar página ou busca (com debounce na busca)
+  useEffect(() => {
+    const t = setTimeout(load, search ? 400 : 0);
+    return () => clearTimeout(t);
+  }, [load]);
+
+  // Categorias carregam só uma vez
+  useEffect(() => {
     api("/categorias/ativas").then(setCategorias).catch(() => {});
   }, []);
-  useEffect(() => { load(); }, [load]);
 
-  const filtered = produtos.filter((p) =>
-    p.nome.toLowerCase().includes(search.toLowerCase()) ||
-    (p.codigo || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const onSearchChange = (v) => { setSearch(v); setPage(0); };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -149,7 +166,7 @@ export default function Produtos({ toast }) {
             <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }} />
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Buscar produto..."
               style={{ padding: "10px 14px 10px 36px", border: "1.5px solid #d1d5db", borderRadius: 10, fontSize: 14, outline: "none", width: 220 }}
             />
@@ -173,7 +190,7 @@ export default function Produtos({ toast }) {
             {loading && (
               <tr><td colSpan={9} style={{ padding: 0 }}><Loading text="Carregando produtos..." /></td></tr>
             )}
-            {!loading && filtered.map((p) => (
+            {!loading && produtos.map((p) => (
               <tr key={p.id} style={{ borderTop: "1px solid #f3f4f6" }}>
                 <td style={{ padding: "8px 8px 8px 14px", width: 44 }}>
                   {p.imagemUrl ? (
@@ -210,11 +227,28 @@ export default function Produtos({ toast }) {
                 </td>
               </tr>
             ))}
-            {!loading && filtered.length === 0 && (
+            {!loading && produtos.length === 0 && (
               <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Nenhum produto encontrado</td></tr>
             )}
           </tbody>
         </table>
+
+        {/* Paginação */}
+        {!loading && totalElements > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderTop: "1px solid #f3f4f6", flexWrap: "wrap", gap: 12 }}>
+            <span style={{ fontSize: 13, color: "#6b7280" }}>
+              {totalElements} produto{totalElements !== 1 ? "s" : ""} · página {page + 1} de {totalPages}
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn variant="ghost" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} style={{ fontSize: 13, padding: "8px 16px" }}>
+                Anterior
+              </Btn>
+              <Btn variant="ghost" onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} style={{ fontSize: 13, padding: "8px 16px" }}>
+                Próxima
+              </Btn>
+            </div>
+          </div>
+        )}
       </div>
 
       {modal && (

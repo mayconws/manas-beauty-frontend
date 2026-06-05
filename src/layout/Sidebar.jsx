@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { BarChart3, ShoppingCart, Package, Tag, DollarSign, Settings, X } from "lucide-react";
+import { BarChart3, ShoppingCart, Package, Tag, DollarSign, Users, Wallet, Settings, X } from "lucide-react";
 import pkg from "../../package.json";
 
 const navItems = [
@@ -8,6 +8,8 @@ const navItems = [
   { path: "/produtos", label: "Produtos", icon: Package },
   { path: "/categorias", label: "Categorias", icon: Tag },
   { path: "/vendas", label: "Vendas", icon: DollarSign },
+  { path: "/clientes", label: "Clientes", icon: Users },
+  { path: "/financeiro", label: "Financeiro", icon: Wallet },
   { path: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 

@@ -8,6 +8,8 @@ import Categorias from "./features/categorias/Categorias";
 import Produtos from "./features/produtos/Produtos";
 import NovaVenda from "./features/vendas/NovaVenda";
 import Vendas from "./features/vendas/Vendas";
+import Clientes from "./features/clientes/Clientes";
+import Financeiro from "./features/financeiro/Financeiro";
 import Configuracoes from "./features/configuracoes/Configuracoes";
 
 const pageTitles = {
@@ -16,6 +18,8 @@ const pageTitles = {
   "/produtos": "Produtos",
   "/categorias": "Categorias",
   "/vendas": "Histórico de Vendas",
+  "/clientes": "Clientes",
+  "/financeiro": "Financeiro",
   "/configuracoes": "Configurações",
 };
 
@@ -56,6 +60,8 @@ export default function App() {
           <Route path="/produtos" element={<Produtos toast={toast} />} />
           <Route path="/categorias" element={<Categorias toast={toast} />} />
           <Route path="/vendas" element={<Vendas toast={toast} />} />
+          <Route path="/clientes" element={<Clientes toast={toast} />} />
+          <Route path="/financeiro" element={<Financeiro toast={toast} />} />
           <Route path="/configuracoes" element={<Configuracoes toast={toast} />} />
         </Routes>
       </main>

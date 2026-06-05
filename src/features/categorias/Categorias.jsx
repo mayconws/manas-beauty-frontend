@@ -4,14 +4,23 @@ import { api } from "../../shared/utils/api";
 import Modal from "../../shared/components/Modal";
 import Btn from "../../shared/components/Btn";
 import Input from "../../shared/components/Input";
+import Loading from "../../shared/components/Loading";
+import Pagination from "../../shared/components/Pagination";
+import { usePagination } from "../../shared/utils/usePagination";
 
 export default function Categorias({ toast }) {
   const [categorias, setCategorias] = useState([]);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ nome: "", descricao: "" });
+  const [loading, setLoading] = useState(true);
 
-  const load = useCallback(() => api("/categorias").then(setCategorias).catch(() => {}), []);
+  const load = useCallback(() => {
+    setLoading(true);
+    api("/categorias").then(setCategorias).catch(() => {}).finally(() => setLoading(false));
+  }, []);
   useEffect(() => { load(); }, [load]);
+
+  const { pageItems, page, setPage, totalPages, total } = usePagination(categorias, 10);
 
   const save = async () => {
     try {
@@ -51,7 +60,10 @@ export default function Categorias({ toast }) {
             </tr>
           </thead>
           <tbody>
-            {categorias.map((c) => (
+            {loading && (
+              <tr><td colSpan={4} style={{ padding: 0 }}><Loading text="Carregando categorias..." /></td></tr>
+            )}
+            {!loading && pageItems.map((c) => (
               <tr key={c.id} style={{ borderTop: "1px solid #f3f4f6" }}>
                 <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, color: "#111827" }}>{c.nome}</td>
                 <td style={{ padding: "12px 16px", fontSize: 14, color: "#6b7280" }}>{c.descricao || "—"}</td>
@@ -73,11 +85,12 @@ export default function Categorias({ toast }) {
                 </td>
               </tr>
             ))}
-            {categorias.length === 0 && (
+            {!loading && categorias.length === 0 && (
               <tr><td colSpan={4} style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Nenhuma categoria cadastrada</td></tr>
             )}
           </tbody>
         </table>
+        {!loading && <Pagination page={page} totalPages={totalPages} total={total} onPage={setPage} unit="categorias" />}
       </div>
 
       {modal && (

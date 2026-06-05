@@ -3,6 +3,7 @@ import { Search, ShoppingCart, AlertTriangle, Minus, Plus, Trash2, Check, ImageI
 import { api, currency } from "../../shared/utils/api";
 import Select from "../../shared/components/Select";
 import Btn from "../../shared/components/Btn";
+import Loading from "../../shared/components/Loading";
 import { printRecibo } from "../../shared/utils/printRecibo";
 import { printOrcamento } from "../../shared/utils/printOrcamento";
 import PixModal from "./PixModal";
@@ -19,6 +20,9 @@ const NOTAS = [10, 20, 50, 100];
 // ─── Component ────────────────────────────────────────────────────────────
 export default function NovaVenda({ toast }) {
   const [produtos, setProdutos] = useState([]);
+  const [loadingProdutos, setLoadingProdutos] = useState(true);
+  const [categorias, setCategorias] = useState([]);
+  const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [search, setSearch] = useState("");
   const [carrinho, setCarrinho] = useState([]);
   const [clienteNome, setClienteNome] = useState("");
@@ -28,8 +32,17 @@ export default function NovaVenda({ toast }) {
   const [obs, setObs] = useState("");
   const [saleCompleted, setSaleCompleted] = useState(null); // dados do recibo pós-venda
   const [showPix, setShowPix] = useState(false);
+  const [clientes, setClientes] = useState([]);
+  const [clienteId, setClienteId] = useState("");
+  const [clienteBusca, setClienteBusca] = useState("");
+  const [showClientes, setShowClientes] = useState(false);
 
-  useEffect(() => { api("/produtos/ativos").then(setProdutos).catch(() => {}); }, []);
+  useEffect(() => {
+    setLoadingProdutos(true);
+    api("/produtos/ativos").then(setProdutos).catch(() => {}).finally(() => setLoadingProdutos(false));
+  }, []);
+  useEffect(() => { api("/clientes").then(setClientes).catch(() => {}); }, []);
+  useEffect(() => { api("/categorias/ativas").then(setCategorias).catch(() => {}); }, []);
 
   // ── Masks ────────────────────────────────────────────────────────────────
   const handleMaskChange = (e, setter) => {
@@ -83,9 +96,13 @@ export default function NovaVenda({ toast }) {
   // ── Finalizar ─────────────────────────────────────────────────────────────
   const finalizar = async () => {
     if (carrinho.length === 0) return toast("Adicione itens ao carrinho!", "warning");
+    if (pagamento === "CREDIARIO" && !clienteId) return toast("Selecione o cliente do crediário!", "warning");
     try {
       // Captura dados do recibo ANTES de resetar o estado
-      const nomeParaRecibo = clienteNome.trim() || "Consumidor Final";
+      const clienteCrediario = clientes.find((c) => String(c.id) === String(clienteId));
+      const nomeParaRecibo = pagamento === "CREDIARIO"
+        ? (clienteCrediario?.nome || "Cliente")
+        : (clienteNome.trim() || "Consumidor Final");
       const dadosRecibo = {
         dataVenda: new Date().toLocaleString("pt-BR"),
         nomeCliente: nomeParaRecibo,
@@ -99,6 +116,7 @@ export default function NovaVenda({ toast }) {
       const body = {
         nomeCliente: nomeParaRecibo,
         cpfCliente: null,
+        clienteId: pagamento === "CREDIARIO" ? parseInt(clienteId) : null,
         itens: carrinho.map((i) => ({ produtoId: i.produtoId, quantidade: i.quantidade })),
         desconto: descontoValor,
         formaPagamento: pagamento,
@@ -109,6 +127,9 @@ export default function NovaVenda({ toast }) {
       setSaleCompleted({ ...dadosRecibo, numeroVenda: venda.numeroVenda });
       setCarrinho([]);
       setClienteNome("");
+      setClienteId("");
+      setClienteBusca("");
+      setShowClientes(false);
       setDescontoDisplay("0,00");
       setValorRecebidoDisplay("0,00");
       setObs("");
@@ -127,10 +148,31 @@ export default function NovaVenda({ toast }) {
     });
   };
 
-  const filteredProdutos = produtos.filter((p) =>
-    p.nome.toLowerCase().includes(search.toLowerCase()) ||
-    (p.codigo || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProdutos = produtos.filter((p) => {
+    const matchTexto =
+      p.nome.toLowerCase().includes(search.toLowerCase()) ||
+      (p.codigo || "").toLowerCase().includes(search.toLowerCase());
+    const matchCategoria = !categoriaFiltro || String(p.categoria?.id) === categoriaFiltro;
+    return matchTexto && matchCategoria;
+  });
+
+  // Enter no campo de busca adiciona o primeiro resultado (agiliza caixa / leitor de código)
+  const onSearchKeyDown = (e) => {
+    if (e.key === "Enter" && filteredProdutos.length > 0) {
+      addItem(filteredProdutos[0]);
+      setSearch("");
+    }
+  };
+
+  const clientesFiltrados = clientes
+    .filter((c) => c.nome.toLowerCase().includes(clienteBusca.toLowerCase()))
+    .slice(0, 8);
+
+  const selecionarCliente = (c) => {
+    setClienteId(String(c.id));
+    setClienteBusca(c.nome);
+    setShowClientes(false);
+  };
 
   return (
     <>
@@ -168,41 +210,75 @@ export default function NovaVenda({ toast }) {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome ou código do produto"
+            onKeyDown={onSearchKeyDown}
+            autoFocus
+            placeholder="Buscar por nome ou código (Enter adiciona o 1º)"
             style={{ width: "100%", padding: "10px 12px 10px 36px", border: "1.5px solid #d1d5db", borderRadius: 10, fontSize: 13, outline: "none", boxSizing: "border-box" }}
           />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10 }}>
-          {filteredProdutos.map((p) => (
-            <div
-              key={p.id}
-              onClick={() => addItem(p)}
-              style={{ background: "#fff", borderRadius: 10, border: "1.5px solid #e5e7eb", cursor: "pointer", transition: "all .15s", position: "relative", overflow: "hidden" }}
-              onMouseOver={(e) => { e.currentTarget.style.borderColor = "#2563eb"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-              onMouseOut={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.transform = "none"; }}
-            >
-              {p.imagemUrl ? (
-                <img src={p.imagemUrl} alt={p.nome} style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />
-              ) : (
-                <div style={{ width: "100%", height: 64, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <ImageIcon size={22} color="#e5e7eb" />
+        {/* Filtro por categoria */}
+        {categorias.length > 0 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+            {[{ id: "", nome: "Todas" }, ...categorias].map((c) => {
+              const ativo = String(categoriaFiltro) === String(c.id);
+              return (
+                <button
+                  key={c.id || "todas"}
+                  onClick={() => setCategoriaFiltro(String(c.id))}
+                  style={{ padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${ativo ? "#2563eb" : "#e5e7eb"}`, background: ativo ? "#eff6ff" : "#fff", color: ativo ? "#2563eb" : "#6b7280" }}
+                >
+                  {c.nome}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {loadingProdutos ? (
+          <Loading text="Carregando produtos..." />
+        ) : filteredProdutos.length === 0 ? (
+          <div style={{ padding: 40, textAlign: "center", color: "#9ca3af", fontSize: 14 }}>Nenhum produto encontrado</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10 }}>
+            {filteredProdutos.map((p) => {
+              const semEstoque = p.quantidadeEstoque < 1;
+              const estoqueBaixo = !semEstoque && p.quantidadeEstoque <= (p.estoqueMinimo || 5);
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => { if (!semEstoque) addItem(p); }}
+                  style={{ background: "#fff", borderRadius: 10, border: "1.5px solid #e5e7eb", cursor: semEstoque ? "not-allowed" : "pointer", opacity: semEstoque ? 0.55 : 1, transition: "all .15s", position: "relative", overflow: "hidden" }}
+                  onMouseOver={(e) => { if (!semEstoque) { e.currentTarget.style.borderColor = "#2563eb"; e.currentTarget.style.transform = "translateY(-2px)"; } }}
+                  onMouseOut={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.transform = "none"; }}
+                >
+                  {p.imagemUrl ? (
+                    <img src={p.imagemUrl} alt={p.nome} style={{ width: "100%", height: 80, objectFit: "cover", display: "block", filter: semEstoque ? "grayscale(1)" : "none" }} />
+                  ) : (
+                    <div style={{ width: "100%", height: 64, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <ImageIcon size={22} color="#e5e7eb" />
+                    </div>
+                  )}
+                  {semEstoque ? (
+                    <div style={{ position: "absolute", top: 5, right: 5, background: "#dc2626", color: "#fff", borderRadius: 5, padding: "2px 6px", fontSize: 9, fontWeight: 700 }}>
+                      SEM ESTOQUE
+                    </div>
+                  ) : estoqueBaixo && (
+                    <div style={{ position: "absolute", top: 5, right: 5, background: "rgba(255,255,255,.9)", borderRadius: 5, padding: 2 }}>
+                      <AlertTriangle size={12} color="#dc2626" />
+                    </div>
+                  )}
+                  <div style={{ padding: "8px 10px 10px" }}>
+                    <div style={{ fontSize: 10, color: "#9ca3af", fontFamily: "monospace", marginBottom: 2 }}>{p.codigo}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", marginBottom: 3, lineHeight: 1.3 }}>{p.nome}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#059669" }}>{currency(p.precoVenda)}</div>
+                    <div style={{ fontSize: 10, color: semEstoque ? "#dc2626" : "#6b7280", marginTop: 2 }}>Estoque: {p.quantidadeEstoque}</div>
+                  </div>
                 </div>
-              )}
-              {p.quantidadeEstoque <= (p.estoqueMinimo || 5) && (
-                <div style={{ position: "absolute", top: 5, right: 5, background: "rgba(255,255,255,.9)", borderRadius: 5, padding: 2 }}>
-                  <AlertTriangle size={12} color="#dc2626" />
-                </div>
-              )}
-              <div style={{ padding: "8px 10px 10px" }}>
-                <div style={{ fontSize: 10, color: "#9ca3af", fontFamily: "monospace", marginBottom: 2 }}>{p.codigo}</div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", marginBottom: 3, lineHeight: 1.3 }}>{p.nome}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#059669" }}>{currency(p.precoVenda)}</div>
-                <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>Estoque: {p.quantidadeEstoque}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Cart ───────────────────────────────────────────────────────────── */}
@@ -262,7 +338,50 @@ export default function NovaVenda({ toast }) {
             <option value="PIX">PIX</option>
             <option value="CARTAO_CREDITO">Cartão Crédito</option>
             <option value="CARTAO_DEBITO">Cartão Débito</option>
+            <option value="CREDIARIO">Crediário</option>
           </Select>
+
+          {/* Cliente do crediário (obrigatório) — busca por nome */}
+          {pagamento === "CREDIARIO" && (
+            <div style={{ marginBottom: 14, position: "relative" }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+                Cliente do crediário <span style={{ color: "#dc2626" }}>*</span>
+              </label>
+              <input
+                value={clienteBusca}
+                onChange={(e) => { setClienteBusca(e.target.value); setShowClientes(true); setClienteId(""); }}
+                onFocus={() => setShowClientes(true)}
+                onBlur={() => setTimeout(() => setShowClientes(false), 150)}
+                placeholder="Digite o nome do cliente..."
+                style={{ width: "100%", padding: "10px 14px", border: `1.5px solid ${clienteId ? "#059669" : "#d1d5db"}`, borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box" }}
+              />
+              {showClientes && clienteBusca && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 20, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, marginTop: 4, boxShadow: "0 8px 24px rgba(0,0,0,.12)", maxHeight: 220, overflowY: "auto" }}>
+                  {clientesFiltrados.length === 0 ? (
+                    <div style={{ padding: "12px 14px", fontSize: 13, color: "#9ca3af" }}>
+                      Nenhum cliente. Cadastre em "Clientes".
+                    </div>
+                  ) : (
+                    clientesFiltrados.map((c) => (
+                      <div
+                        key={c.id}
+                        onMouseDown={() => selecionarCliente(c)}
+                        style={{ padding: "10px 14px", fontSize: 14, cursor: "pointer", borderBottom: "1px solid #f3f4f6" }}
+                        onMouseOver={(e) => (e.currentTarget.style.background = "#f9fafb")}
+                        onMouseOut={(e) => (e.currentTarget.style.background = "#fff")}
+                      >
+                        <div style={{ fontWeight: 600, color: "#111827" }}>{c.nome}</div>
+                        {c.cpf && <div style={{ fontSize: 12, color: "#9ca3af", fontFamily: "monospace" }}>{c.cpf}</div>}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+              <div style={{ fontSize: 12, color: clienteId ? "#059669" : "#9ca3af", marginTop: 6 }}>
+                {clienteId ? "✓ Cliente selecionado — venda irá para o crediário dele." : "Selecione um cliente da lista para registrar a dívida."}
+              </div>
+            </div>
+          )}
 
           {/* PIX QR Code button */}
           {pagamento === "PIX" && (
