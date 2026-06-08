@@ -11,6 +11,12 @@ import Vendas from "./features/vendas/Vendas";
 import Clientes from "./features/clientes/Clientes";
 import Financeiro from "./features/financeiro/Financeiro";
 import Configuracoes from "./features/configuracoes/Configuracoes";
+import Login from "./features/auth/Login";
+import EsqueciSenha from "./features/auth/EsqueciSenha";
+import RedefinirSenha from "./features/auth/RedefinirSenha";
+import TrocarSenha from "./features/auth/TrocarSenha";
+import Usuarios from "./features/usuarios/Usuarios";
+import { useAuth } from "./shared/auth/AuthContext";
 
 const pageTitles = {
   "/dashboard": "Dashboard",
@@ -21,15 +27,30 @@ const pageTitles = {
   "/clientes": "Clientes",
   "/financeiro": "Financeiro",
   "/configuracoes": "Configurações",
+  "/usuarios": "Usuários",
+  "/trocar-senha": "Trocar Senha",
 };
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toastData, setToastData] = useState(null);
   const location = useLocation();
+  const { isAuthenticated, user } = useAuth();
 
   const toast = (message, type = "success") => setToastData({ message, type, key: Date.now() });
   const title = pageTitles[location.pathname] || "";
+
+  // Não autenticado → apenas telas públicas de login/recuperação
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+        <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
   return (
     <div className="app-layout">
@@ -63,6 +84,12 @@ export default function App() {
           <Route path="/clientes" element={<Clientes toast={toast} />} />
           <Route path="/financeiro" element={<Financeiro toast={toast} />} />
           <Route path="/configuracoes" element={<Configuracoes toast={toast} />} />
+          <Route path="/trocar-senha" element={<TrocarSenha toast={toast} />} />
+          <Route
+            path="/usuarios"
+            element={user?.role === "ADMIN" ? <Usuarios toast={toast} /> : <Navigate to="/dashboard" replace />}
+          />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
     </div>

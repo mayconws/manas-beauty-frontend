@@ -5,11 +5,28 @@ export const currency = (v) => {
   return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 };
 
+export const getToken = () => localStorage.getItem("token");
+
 export const api = async (path, opts = {}) => {
+  const token = getToken();
+  const { headers: extraHeaders, ...rest } = opts;
   const res = await fetch(`${API}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(extraHeaders || {}),
+    },
+    ...rest,
   });
+
+  // Token expirado/inválido numa requisição autenticada → derruba a sessão
+  if (res.status === 401 && token) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.assign("/login");
+    throw new Error("Sessão expirada. Faça login novamente.");
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || "Erro na requisição");
