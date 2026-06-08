@@ -19,7 +19,6 @@ export const api = async (path, opts = {}) => {
     ...rest,
   });
 
-  // 401 → sessão inválida/expirada: limpa e manda pro login (mesmo sem token em memória)
   if (res.status === 401) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
