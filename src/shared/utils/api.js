@@ -19,11 +19,10 @@ export const api = async (path, opts = {}) => {
     ...rest,
   });
 
-  // Token expirado/inválido numa requisição autenticada → derruba a sessão
-  if (res.status === 401 && token) {
+  if (res.status === 401) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    window.location.assign("/login");
+    if (window.location.pathname !== "/login") window.location.assign("/login");
     throw new Error("Sessão expirada. Faça login novamente.");
   }
 
