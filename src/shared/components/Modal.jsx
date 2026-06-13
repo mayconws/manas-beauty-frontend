@@ -1,10 +1,10 @@
 import { X } from "lucide-react";
 
-export default function Modal({ title, onClose, children, width = 520 }) {
+export default function Modal({ title, onClose, children, width = 520, closeOnBackdrop = true }) {
   return (
     <div
       style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.45)", backdropFilter: "blur(4px)" }}
-      onClick={onClose}
+      onClick={closeOnBackdrop ? onClose : undefined}
     >
       <div
         style={{ background: "#fff", borderRadius: 16, width: "90%", maxWidth: width, maxHeight: "85vh", overflow: "auto", boxShadow: "0 25px 60px rgba(0,0,0,.2)" }}
