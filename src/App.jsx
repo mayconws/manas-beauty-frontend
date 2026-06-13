@@ -16,6 +16,7 @@ import EsqueciSenha from "./features/auth/EsqueciSenha";
 import RedefinirSenha from "./features/auth/RedefinirSenha";
 import TrocarSenha from "./features/auth/TrocarSenha";
 import Usuarios from "./features/usuarios/Usuarios";
+import Lojas from "./features/lojas/Lojas";
 import { useAuth } from "./shared/auth/AuthContext";
 
 const pageTitles = {
@@ -29,6 +30,7 @@ const pageTitles = {
   "/configuracoes": "Configurações",
   "/usuarios": "Usuários",
   "/trocar-senha": "Trocar Senha",
+  "/admin/lojas": "Lojas",
 };
 
 export default function App() {
@@ -39,6 +41,7 @@ export default function App() {
 
   const toast = (message, type = "success") => setToastData({ message, type, key: Date.now() });
   const title = pageTitles[location.pathname] || "";
+  const homePath = user?.role === "PLATFORM_ADMIN" ? "/admin/lojas" : "/dashboard";
 
   // Não autenticado → apenas telas públicas de login/recuperação
   if (!isAuthenticated) {
@@ -75,7 +78,7 @@ export default function App() {
         </div>
 
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to={homePath} replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/pdv" element={<NovaVenda toast={toast} />} />
           <Route path="/produtos" element={<Produtos toast={toast} />} />
@@ -87,9 +90,13 @@ export default function App() {
           <Route path="/trocar-senha" element={<TrocarSenha toast={toast} />} />
           <Route
             path="/usuarios"
-            element={user?.role === "ADMIN" ? <Usuarios toast={toast} /> : <Navigate to="/dashboard" replace />}
+            element={user?.role === "ADMIN" ? <Usuarios toast={toast} /> : <Navigate to={homePath} replace />}
           />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/admin/lojas"
+            element={user?.role === "PLATFORM_ADMIN" ? <Lojas toast={toast} /> : <Navigate to={homePath} replace />}
+          />
+          <Route path="*" element={<Navigate to={homePath} replace />} />
         </Routes>
       </main>
     </div>

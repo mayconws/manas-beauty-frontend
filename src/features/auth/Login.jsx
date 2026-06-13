@@ -21,7 +21,7 @@ export default function Login() {
     try {
       const data = await api("/auth/login", { method: "POST", body: JSON.stringify({ email, senha }) });
       login(data);
-      navigate("/dashboard", { replace: true });
+      navigate(data.role === "PLATFORM_ADMIN" ? "/admin/lojas" : "/dashboard", { replace: true });
     } catch (err) {
       setErro(err.message);
     } finally {
